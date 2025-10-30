@@ -1,75 +1,30 @@
 const express = require('express');
 const {
-  getRestaurants,
-  getRestaurant,
-  createRestaurant,
-  updateRestaurant,
-  deleteRestaurant,
-  getRestaurantsByOwner,
-  updateRestaurantStatus,
-  getRestaurantStats
+  getRestaurants,
+  getRestaurantById,
+  createRestaurant,
+  updateRestaurant,
+  deleteRestaurant,
+  getRestaurantDishes,
+  getRestaurantOrders,
+  updateRestaurantStatus
 } = require('../controllers/restaurantController');
-const { authenticate, authorize, checkOwnership } = require('../middleware/authMiddleware');
+const { protect, authorize } = require('../middleware/authMiddleware');
 const { validate, schemas } = require('../middleware/validationMiddleware');
-const Restaurant = require('../models/Restaurant');
 
 const router = express.Router();
 
-
-// 1. ROUTES SPÉCIFIQUES (DOIVENT ÊTRE EN PREMIER)
-// @route   GET /api/restaurants/owner/me
-router.get('/owner/me', 
-  authenticate, 
-  authorize('restaurant', 'admin'), 
-  getRestaurantsByOwner // ✅ Cette route sera atteinte
-);
-
-// 2. ROUTES DYNAMIQUES AVEC SOUS-CHEMIN
-// @route   PUT /api/restaurants/:id/status
-router.put('/:id/status', 
-  authenticate, 
-  authorize('admin'), 
-  updateRestaurantStatus
-);
-
-// @route   GET /api/restaurants/:id/stats
-router.get('/:id/stats', 
-  authenticate, 
-  checkOwnership(Restaurant), 
-  getRestaurantStats
-);
-
-
-// 3. ROUTES SIMPLES (GÉNÉRALES ET DYNAMIQUES)
-
-// @route   GET /api/restaurants
 router.get('/', getRestaurants);
+router.get('/:id', getRestaurantById);
+router.get('/:id/dishes', getRestaurantDishes);
 
-// @route   POST /api/restaurants
-router.post('/', 
-  authenticate, 
-  authorize('restaurant', 'admin'), 
-  validate(schemas.createRestaurant), 
-  createRestaurant
-);
+// Routes protégées
+router.use(protect);
 
-// @route   PUT /api/restaurants/:id
-router.put('/:id', 
-  authenticate, 
-  checkOwnership(Restaurant), 
-  updateRestaurant
-);
-
-// @route   DELETE /api/restaurants/:id
-router.delete('/:id', 
-  authenticate, 
-  checkOwnership(Restaurant), 
-  deleteRestaurant
-);
-
-// @route   GET /api/restaurants/:id
-// ✅ CELLE-CI DOIT ÊTRE LA DERNIÈRE des routes GET simples.
-router.get('/:id', getRestaurant); 
-
+router.post('/', authorize('restaurant'), validate(schemas.restaurant), createRestaurant);
+router.put('/:id', authorize('restaurant'), updateRestaurant);
+router.delete('/:id', authorize('restaurant', 'admin'), deleteRestaurant);
+router.get('/:id/orders', authorize('restaurant'), getRestaurantOrders);
+router.patch('/:id/status', authorize('restaurant'), updateRestaurantStatus);
 
 module.exports = router;
