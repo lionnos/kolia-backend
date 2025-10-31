@@ -17,20 +17,15 @@ const router = express.Router();
 router.get('/', getDishes);
 router.get('/search', searchDishes);
 router.get('/:id', getDishById);
-router.get('/restaurant/:restaurantId', getDishesByRestaurant); // ✅ Doit être publique
+router.get('/restaurant/:id', getDishesByRestaurant); // ✅ DOIT ÊTRE PUBLIQUE
 
 // --- ROUTES PROTÉGÉES ---
-// ❌ SUPPRIMEZ cette ligne qui rend tout protégé :
-// router.use(protect);
+// ⚠️ SUPPRIMEZ CE router.use(protect) S'IL EXISTE
+// router.use(protect); // ❌ À SUPPRIMER
 
-// ✅ Appliquez protect individuellement aux routes qui en ont besoin :
+// ✅ Appliquez protect individuellement aux routes protégées :
 router.post('/', protect, authorize('restaurant'), validate(schemas.dish), createDish);
 router.put('/:id', protect, authorize('restaurant'), updateDish);
 router.delete('/:id', protect, authorize('restaurant'), deleteDish);
-
-module.exports = router;
-router.post('/', authorize('restaurant'), validate(schemas.dish), createDish);
-router.put('/:id', authorize('restaurant'), updateDish);
-router.delete('/:id', authorize('restaurant'), deleteDish);
 
 module.exports = router;
