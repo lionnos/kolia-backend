@@ -59,6 +59,73 @@ if (process.env.NODE_ENV === 'development') {
   });
 }
 
+// ✅ AJOUTEZ CECI dans server.js APRÈS les middleware et AVANT les autres routes
+app.get('/api/dishes/restaurant/:restaurantId', async (req, res) => {
+  try {
+    const { restaurantId } = req.params;
+    console.log(`🍽️ [URGENT] Fetching dishes for restaurant: ${restaurantId}`);
+    
+    const supabase = require('./config/supabaseClient');
+    const { data: dishes, error } = await supabase
+      .from('dishes')
+      .select('*')
+      .eq('restaurant_id', restaurantId)
+      .order('name');
+
+    if (error) {
+      return res.status(500).json({ 
+        success: false, 
+        error: error.message 
+      });
+    }
+    
+    res.json({
+      success: true,
+      count: dishes?.length || 0,
+      data: dishes || []
+    });
+
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+// ✅ ROUTE TEMPORAIRE pour restaurants aussi
+app.get('/api/restaurants/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`🏪 [URGENT] Fetching restaurant: ${id}`);
+    
+    const supabase = require('./config/supabaseClient');
+    const { data: restaurant, error } = await supabase
+      .from('restaurants')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error || !restaurant) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Restaurant non trouvé' 
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: restaurant
+    });
+
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({
