@@ -21,6 +21,85 @@ const corsOptions = require('./config/corsConfig');
 
 const app = express();
 
+// ... (votre configuration existante)
+
+// ==================== ✅ ROUTES URGENTES - DOIVENT ÊTRE EN PREMIER ====================
+
+// Route URGENTE UNIQUE pour restaurants - DOIT ÊTRE AVANT app.use
+app.get('/api/restaurants/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`🏪 [URGENT-FIRST] Fetching restaurant ID: ${id}`);
+    
+    const supabase = require('./config/supabaseClient');
+    const { data: restaurant, error } = await supabase
+      .from('restaurants')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error || !restaurant) {
+      console.log('❌ Restaurant non trouvé dans DB');
+      return res.status(404).json({
+        success: false,
+        error: 'Restaurant non trouvé'
+      });
+    }
+
+    console.log('✅ Restaurant trouvé:', restaurant.name);
+    res.json({
+      success: true,
+      data: restaurant
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur serveur:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur interne du serveur'
+    });
+  }
+});
+
+// Route URGENTE UNIQUE pour plats - DOIT ÊTRE AVANT app.use
+app.get('/api/dishes/restaurant/:restaurantId', async (req, res) => {
+  try {
+    const { restaurantId } = req.params;
+    console.log(`🍽️ [URGENT-FIRST] Fetching dishes for restaurant: ${restaurantId}`);
+    
+    const supabase = require('./config/supabaseClient');
+    const { data: dishes, error } = await supabase
+      .from('dishes')
+      .select('*')
+      .eq('restaurant_id', restaurantId)
+      .order('name');
+
+    if (error) {
+      console.error('❌ Erreur Supabase:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Erreur de base de données'
+      });
+    }
+
+    console.log(`✅ ${dishes?.length || 0} plats trouvés`);
+    res.json({
+      success: true,
+      count: dishes?.length || 0,
+      data: dishes || []
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur serveur:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur interne du serveur'
+    });
+  }
+});
+
+// ==================== FIN DES ROUTES URGENTES ====================
+ 
 // Security middleware
 app.use(helmet());
 app.use(compression());
@@ -54,79 +133,7 @@ if (process.env.NODE_ENV === 'development') {
     next();
   });
 }
-
-// ==================== ✅ ROUTES URGENTES UNIQUES ====================
-
-// Route URGENTE UNIQUE pour restaurants
-app.get('/api/restaurants/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    console.log(`🏪 [URGENT] Fetching restaurant ID: ${id}`);
-    
-    const supabase = require('./config/supabaseClient');
-    const { data: restaurant, error } = await supabase
-      .from('restaurants')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (error || !restaurant) {
-      return res.status(404).json({
-        success: false,
-        error: 'Restaurant non trouvé'
-      });
-    }
-
-    console.log('✅ Restaurant trouvé:', restaurant.name);
-    res.json({
-      success: true,
-      data: restaurant
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Erreur interne du serveur'
-    });
-  }
-});
-
-// Route URGENTE UNIQUE pour plats
-app.get('/api/dishes/restaurant/:restaurantId', async (req, res) => {
-  try {
-    const { restaurantId } = req.params;
-    console.log(`🍽️ [URGENT] Fetching dishes for restaurant: ${restaurantId}`);
-    
-    const supabase = require('./config/supabaseClient');
-    const { data: dishes, error } = await supabase
-      .from('dishes')
-      .select('*')
-      .eq('restaurant_id', restaurantId)
-      .order('name');
-
-    if (error) {
-      return res.status(500).json({
-        success: false,
-        error: 'Erreur de base de données'
-      });
-    }
-
-    console.log(`✅ ${dishes?.length || 0} plats trouvés`);
-    res.json({
-      success: true,
-      count: dishes?.length || 0,
-      data: dishes || []
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Erreur interne du serveur'
-    });
-  }
-});
-
-// ==================== FIN DES ROUTES URGENTES ====================
+ 
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
