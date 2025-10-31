@@ -180,6 +180,79 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/upload', uploadRoutes);
 
+// === ✅ AJOUTEZ CES ROUTES D'URGENCE ===
+// Placez-les APRÈS les autres app.use() et AVANT les error handlers
+
+// Route URGENTE pour récupérer un restaurant par ID
+app.get('/api/restaurants/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`🏪 [URGENT] Fetching restaurant ID: ${id}`);
+    
+    const supabase = require('./config/supabaseClient');
+    const { data: restaurant, error } = await supabase
+      .from('restaurants')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error || !restaurant) {
+      return res.status(404).json({
+        success: false,
+        error: 'Restaurant non trouvé'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: restaurant
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Erreur interne du serveur'
+    });
+  }
+});
+
+// Route URGENTE pour récupérer les plats d'un restaurant
+app.get('/api/dishes/restaurant/:restaurantId', async (req, res) => {
+  try {
+    const { restaurantId } = req.params;
+    console.log(`🍽️ [URGENT] Fetching dishes for restaurant: ${restaurantId}`);
+    
+    const supabase = require('./config/supabaseClient');
+    const { data: dishes, error } = await supabase
+      .from('dishes')
+      .select('*')
+      .eq('restaurant_id', restaurantId)
+      .order('name');
+
+    if (error) {
+      return res.status(500).json({
+        success: false,
+        error: 'Erreur de base de données'
+      });
+    }
+
+    res.json({
+      success: true,
+      count: dishes?.length || 0,
+      data: dishes || []
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Erreur interne du serveur'
+    });
+  }
+});
+
+// === FIN DES AJOUTS ===
+
+
 // Error handling middleware
 app.use(notFound);
 app.use(errorHandler);
