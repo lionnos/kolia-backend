@@ -55,13 +55,13 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-// ==================== ✅ ROUTES URGENTES EN PREMIER ====================
+/// ==================== ✅ ROUTES URGENTES AVEC PRÉFIXE DIFFÉRENT ====================
 
-// Route URGENTE - DOIT ÊTRE EN PREMIER
-app.get('/api/restaurants/:id', async (req, res) => {
+// Route URGENTE avec préfixe différent pour éviter les conflits
+app.get('/api/urgent/restaurants/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    console.log(`✅ [URGENT] Route appelée pour restaurant: ${id}`);
+    console.log(`✅ [URGENT-NEW] Route appelée pour restaurant: ${id}`);
     
     const supabase = require('./config/supabaseClient');
     const { data: restaurant, error } = await supabase
@@ -76,18 +76,18 @@ app.get('/api/restaurants/:id', async (req, res) => {
     }
 
     console.log(`✅ Restaurant trouvé: ${restaurant.name}`);
-    res.json(restaurant); // Format SIMPLE
+    res.json(restaurant);
 
   } catch (error) {
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
 
-// Route URGENTE - DOIT ÊTRE EN PREMIER
-app.get('/api/dishes/restaurant/:restaurantId', async (req, res) => {
+// Route URGENTE avec préfixe différent
+app.get('/api/urgent/dishes/restaurant/:restaurantId', async (req, res) => {
   try {
     const { restaurantId } = req.params;
-    console.log(`✅ [URGENT] Route appelée pour plats restaurant: ${restaurantId}`);
+    console.log(`✅ [URGENT-NEW] Route appelée pour plats restaurant: ${restaurantId}`);
     
     const supabase = require('./config/supabaseClient');
     const { data: dishes, error } = await supabase
@@ -101,14 +101,12 @@ app.get('/api/dishes/restaurant/:restaurantId', async (req, res) => {
     }
 
     console.log(`✅ ${dishes?.length || 0} plats trouvés`);
-    res.json(dishes || []); // Format SIMPLE
+    res.json(dishes || []);
 
   } catch (error) {
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
-
-// ==================== FIN DES ROUTES URGENTES ====================
 
 // Health check
 app.get('/api/health', (req, res) => {
