@@ -180,8 +180,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/upload', uploadRoutes);
 
-/// ==================== ✅ ROUTES URGENTES À AJOUTER ====================
-// Placez ce code APRÈS toutes les routes app.use() et AVANT les error handlers
+/// ==================== ✅ ROUTES URGENTES CORRIGÉES ====================
 
 // Route URGENTE pour récupérer un restaurant par ID
 app.get('/api/restaurants/:id', async (req, res) => {
@@ -196,8 +195,33 @@ app.get('/api/restaurants/:id', async (req, res) => {
       .eq('id', id)
       .single();
 
-    if (error || !restaurant) {
-      console.log('❌ Restaurant non trouvé dans la base de données');
+    if (error) {
+      console.error('❌ Erreur Supabase:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Erreur base de données'
+      });
+    }
+
+    if (!restaurant) {
+      console.log(`❌ Aucun restaurant avec ID: ${id}`);
+      
+      // ✅ OPTION: Récupérer le PREMIER restaurant disponible
+      const { data: firstRestaurant, error: firstError } = await supabase
+        .from('restaurants')
+        .select('*')
+        .limit(1)
+        .single();
+        
+      if (firstRestaurant) {
+        console.log(`🔄 Utilisation du restaurant ID: ${firstRestaurant.id} à la place`);
+        return res.json({
+          success: true,
+          data: firstRestaurant,
+          note: `Restaurant ID ${id} non trouvé, utilisation du premier disponible`
+        });
+      }
+      
       return res.status(404).json({
         success: false,
         error: 'Restaurant non trouvé'
@@ -219,11 +243,11 @@ app.get('/api/restaurants/:id', async (req, res) => {
   }
 });
 
-// Route URGENTE pour récupérer les plats d'un restaurant
+// Route URGENTE POUR PLATS (PUBLIQUE - SANS AUTH)
 app.get('/api/dishes/restaurant/:restaurantId', async (req, res) => {
   try {
     const { restaurantId } = req.params;
-    console.log(`🍽️ [URGENT] Fetching dishes for restaurant: ${restaurantId}`);
+    console.log(`🍽️ [URGENT-PUBLIC] Fetching dishes for restaurant: ${restaurantId}`);
     
     const supabase = require('./config/supabaseClient');
     const { data: dishes, error } = await supabase
@@ -240,7 +264,7 @@ app.get('/api/dishes/restaurant/:restaurantId', async (req, res) => {
       });
     }
 
-    console.log(`✅ ${dishes?.length || 0} plats trouvés`);
+    console.log(`✅ ${dishes?.length || 0} plats trouvés pour restaurant ${restaurantId}`);
     res.json({
       success: true,
       count: dishes?.length || 0,
