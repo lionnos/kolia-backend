@@ -14,7 +14,7 @@ const dishRoutes = require('./routes/dishRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
-const testRoutes = require('./routes/testRoutes'); // ✅ ajout route test
+const testRoutes = require('./routes/testRoutes');
 
 // Import de la configuration CORS
 const corsOptions = require('./config/corsConfig');
@@ -27,8 +27,8 @@ app.use(compression());
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   message: {
     success: false,
     error: 'Trop de requêtes depuis cette IP, veuillez réessayer plus tard.'
@@ -38,10 +38,8 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// ✅ CORS configuration AMÉLIORÉE pour Axios
+// ✅ CORS configuration
 app.use(cors(corsOptions));
-
-// ✅ Options preflight pour toutes les routes
 app.options('*', cors(corsOptions));
 
 // Body parsing middleware
@@ -51,138 +49,15 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Logging middleware
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
-  
-  // ✅ Logger des requêtes CORS en développement
   app.use((req, res, next) => {
     console.log(`🌐 ${new Date().toISOString()} - ${req.method} ${req.path} - Origin: ${req.headers.origin || 'No Origin'}`);
     next();
   });
 }
 
-// ✅ AJOUTEZ CECI dans server.js APRÈS les middleware et AVANT les autres routes
-app.get('/api/dishes/restaurant/:restaurantId', async (req, res) => {
-  try {
-    const { restaurantId } = req.params;
-    console.log(`🍽️ [URGENT] Fetching dishes for restaurant: ${restaurantId}`);
-    
-    const supabase = require('./config/supabaseClient');
-    const { data: dishes, error } = await supabase
-      .from('dishes')
-      .select('*')
-      .eq('restaurant_id', restaurantId)
-      .order('name');
+// ==================== ✅ ROUTES URGENTES UNIQUES ====================
 
-    if (error) {
-      return res.status(500).json({ 
-        success: false, 
-        error: error.message 
-      });
-    }
-    
-    res.json({
-      success: true,
-      count: dishes?.length || 0,
-      data: dishes || []
-    });
-
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
-  }
-});
-
-// ✅ ROUTE TEMPORAIRE pour restaurants aussi
-app.get('/api/restaurants/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    console.log(`🏪 [URGENT] Fetching restaurant: ${id}`);
-    
-    const supabase = require('./config/supabaseClient');
-    const { data: restaurant, error } = await supabase
-      .from('restaurants')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (error || !restaurant) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Restaurant non trouvé' 
-      });
-    }
-    
-    res.json({
-      success: true,
-      data: restaurant
-    });
-
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
-  }
-});
-
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'KOLIA API is running',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV,
-    cors: {
-      enabled: true,
-      allowedOrigins: corsOptions.origin ? 'Configured' : 'All in dev'
-    }
-  });
-});
-
-// ✅ Route de test de connexion frontend-backend
-app.use('/api/test', testRoutes);
-
-// Dans server.js, avant app.use('/api/restaurants', restaurantRoutes)
-app.get('/api/debug-restaurant/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    console.log(`🔍 DEBUG: Testing restaurant route for ID: ${id}`);
-    
-    // Test direct avec votre controller
-    const { getRestaurantById } = require('./controllers/restaurantController');
-    
-    // Appel simulé
-    const mockReq = { params: { id } };
-    const mockRes = {
-      status: (code) => ({
-        json: (data) => {
-          console.log(`✅ DEBUG Response:`, data);
-          res.status(code).json(data);
-        }
-      })
-    };
-    
-    await getRestaurantById(mockReq, mockRes);
-    
-  } catch (error) {
-    console.error('❌ DEBUG Error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/restaurants', restaurantRoutes);
-app.use('/api/dishes', dishRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/payments', paymentRoutes);
-app.use('/api/upload', uploadRoutes);
-
-/// ==================== ✅ ROUTES URGENTES CORRIGÉES ====================
-
-// Route URGENTE pour récupérer un restaurant par ID
+// Route URGENTE UNIQUE pour restaurants
 app.get('/api/restaurants/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -195,33 +70,7 @@ app.get('/api/restaurants/:id', async (req, res) => {
       .eq('id', id)
       .single();
 
-    if (error) {
-      console.error('❌ Erreur Supabase:', error);
-      return res.status(500).json({
-        success: false,
-        error: 'Erreur base de données'
-      });
-    }
-
-    if (!restaurant) {
-      console.log(`❌ Aucun restaurant avec ID: ${id}`);
-      
-      // ✅ OPTION: Récupérer le PREMIER restaurant disponible
-      const { data: firstRestaurant, error: firstError } = await supabase
-        .from('restaurants')
-        .select('*')
-        .limit(1)
-        .single();
-        
-      if (firstRestaurant) {
-        console.log(`🔄 Utilisation du restaurant ID: ${firstRestaurant.id} à la place`);
-        return res.json({
-          success: true,
-          data: firstRestaurant,
-          note: `Restaurant ID ${id} non trouvé, utilisation du premier disponible`
-        });
-      }
-      
+    if (error || !restaurant) {
       return res.status(404).json({
         success: false,
         error: 'Restaurant non trouvé'
@@ -235,7 +84,6 @@ app.get('/api/restaurants/:id', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Erreur serveur:', error);
     res.status(500).json({
       success: false,
       error: 'Erreur interne du serveur'
@@ -243,11 +91,11 @@ app.get('/api/restaurants/:id', async (req, res) => {
   }
 });
 
-// Route URGENTE POUR PLATS (PUBLIQUE - SANS AUTH)
+// Route URGENTE UNIQUE pour plats
 app.get('/api/dishes/restaurant/:restaurantId', async (req, res) => {
   try {
     const { restaurantId } = req.params;
-    console.log(`🍽️ [URGENT-PUBLIC] Fetching dishes for restaurant: ${restaurantId}`);
+    console.log(`🍽️ [URGENT] Fetching dishes for restaurant: ${restaurantId}`);
     
     const supabase = require('./config/supabaseClient');
     const { data: dishes, error } = await supabase
@@ -257,14 +105,13 @@ app.get('/api/dishes/restaurant/:restaurantId', async (req, res) => {
       .order('name');
 
     if (error) {
-      console.error('❌ Erreur Supabase:', error);
       return res.status(500).json({
         success: false,
         error: 'Erreur de base de données'
       });
     }
 
-    console.log(`✅ ${dishes?.length || 0} plats trouvés pour restaurant ${restaurantId}`);
+    console.log(`✅ ${dishes?.length || 0} plats trouvés`);
     res.json({
       success: true,
       count: dishes?.length || 0,
@@ -272,7 +119,6 @@ app.get('/api/dishes/restaurant/:restaurantId', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Erreur serveur:', error);
     res.status(500).json({
       success: false,
       error: 'Erreur interne du serveur'
@@ -282,7 +128,24 @@ app.get('/api/dishes/restaurant/:restaurantId', async (req, res) => {
 
 // ==================== FIN DES ROUTES URGENTES ====================
 
- 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'KOLIA API is running',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/restaurants', restaurantRoutes);  // ⚠️ CONFLIT AVEC LA ROUTE CI-DESSUS
+app.use('/api/dishes', dishRoutes);             // ⚠️ CONFLIT AVEC LA ROUTE CI-DESSUS
+app.use('/api/orders', orderRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/upload', uploadRoutes);
+app.use('/api/test', testRoutes);
 
 // Error handling middleware
 app.use(notFound);
@@ -292,10 +155,6 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`🚀 KOLIA API Server running on port ${PORT}`);
-  console.log(`📱 Environment: ${process.env.NODE_ENV}`);
-  console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
-  console.log(`🔧 CORS configured for Axios communication`);
-  console.log('✅ Route de test active sur: http://localhost:' + PORT + '/api/test');
 });
 
 module.exports = app;
