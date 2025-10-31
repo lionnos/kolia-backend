@@ -76,6 +76,34 @@ app.get('/api/health', (req, res) => {
 // ✅ Route de test de connexion frontend-backend
 app.use('/api/test', testRoutes);
 
+// Dans server.js, avant app.use('/api/restaurants', restaurantRoutes)
+app.get('/api/debug-restaurant/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`🔍 DEBUG: Testing restaurant route for ID: ${id}`);
+    
+    // Test direct avec votre controller
+    const { getRestaurantById } = require('./controllers/restaurantController');
+    
+    // Appel simulé
+    const mockReq = { params: { id } };
+    const mockRes = {
+      status: (code) => ({
+        json: (data) => {
+          console.log(`✅ DEBUG Response:`, data);
+          res.status(code).json(data);
+        }
+      })
+    };
+    
+    await getRestaurantById(mockReq, mockRes);
+    
+  } catch (error) {
+    console.error('❌ DEBUG Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
