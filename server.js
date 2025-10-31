@@ -180,8 +180,8 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/upload', uploadRoutes);
 
-// === ✅ AJOUTEZ CES ROUTES D'URGENCE ===
-// Placez-les APRÈS les autres app.use() et AVANT les error handlers
+/// ==================== ✅ ROUTES URGENTES À AJOUTER ====================
+// Placez ce code APRÈS toutes les routes app.use() et AVANT les error handlers
 
 // Route URGENTE pour récupérer un restaurant par ID
 app.get('/api/restaurants/:id', async (req, res) => {
@@ -197,18 +197,21 @@ app.get('/api/restaurants/:id', async (req, res) => {
       .single();
 
     if (error || !restaurant) {
+      console.log('❌ Restaurant non trouvé dans la base de données');
       return res.status(404).json({
         success: false,
         error: 'Restaurant non trouvé'
       });
     }
 
+    console.log('✅ Restaurant trouvé:', restaurant.name);
     res.json({
       success: true,
       data: restaurant
     });
 
   } catch (error) {
+    console.error('❌ Erreur serveur:', error);
     res.status(500).json({
       success: false,
       error: 'Erreur interne du serveur'
@@ -230,12 +233,14 @@ app.get('/api/dishes/restaurant/:restaurantId', async (req, res) => {
       .order('name');
 
     if (error) {
+      console.error('❌ Erreur Supabase:', error);
       return res.status(500).json({
         success: false,
         error: 'Erreur de base de données'
       });
     }
 
+    console.log(`✅ ${dishes?.length || 0} plats trouvés`);
     res.json({
       success: true,
       count: dishes?.length || 0,
@@ -243,6 +248,7 @@ app.get('/api/dishes/restaurant/:restaurantId', async (req, res) => {
     });
 
   } catch (error) {
+    console.error('❌ Erreur serveur:', error);
     res.status(500).json({
       success: false,
       error: 'Erreur interne du serveur'
@@ -250,8 +256,9 @@ app.get('/api/dishes/restaurant/:restaurantId', async (req, res) => {
   }
 });
 
-// === FIN DES AJOUTS ===
+// ==================== FIN DES ROUTES URGENTES ====================
 
+ 
 
 // Error handling middleware
 app.use(notFound);
