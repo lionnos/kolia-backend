@@ -58,10 +58,9 @@ if (process.env.NODE_ENV === 'development') {
 /// ==================== ✅ ROUTES URGENTES AVEC PRÉFIXE DIFFÉRENT ====================
 
 // Route URGENTE avec préfixe différent pour éviter les conflits
-app.get('/api/urgent/restaurants/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    console.log(`✅ [URGENT-NEW] Route appelée pour restaurant: ${id}`);
+app.get('/urgent/restaurants/:id', async (req, res) => { 
+  try {
+    const { id } = req.params;
     
     const supabase = require('./config/supabaseClient');
     const { data: restaurant, error } = await supabase
@@ -84,9 +83,7 @@ app.get('/api/urgent/restaurants/:id', async (req, res) => {
 });
 
 // Route URGENTE avec préfixe différent
-app.get('/api/urgent/dishes/restaurant/:restaurantId', async (req, res) => {
-  try {
-    const { restaurantId } = req.params;
+app.get('/urgent/dishes/restaurant/:restaurantId', async (req, res)
     console.log(`✅ [URGENT-NEW] Route appelée pour plats restaurant: ${restaurantId}`);
     
     const supabase = require('./config/supabaseClient');
