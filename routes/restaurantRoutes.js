@@ -1,9 +1,10 @@
-// restaurantRoutes.js - Version corrigée
+// restaurantRoutes.js - AVEC MOCKING POUR LA DÉMO
 const express = require('express');
 const router = express.Router();
+
+// Importez les contrôleurs originaux pour les autres routes
 const { 
   getRestaurants, 
-  getRestaurantById, 
   createRestaurant, 
   updateRestaurant, 
   deleteRestaurant,
@@ -11,17 +12,23 @@ const {
   getRestaurantOrders,
   updateRestaurantStatus
 } = require('../controllers/restaurantController');
+
+// ✅ Importez le mock controller
+const { getMockRestaurantById } = require('../controllers/mockControllers'); 
+
+
 const { protect, authorize } = require('../middleware/authMiddleware');
 const { validate, schemas } = require('../middleware/validationMiddleware');
 
-// --- ROUTES PUBLIQUES (Ordre corrigé : Sous-ressources > Dynamique > Générale) ---
+// --- ROUTES PUBLIQUES (Ordre corrigé et Mocké) ---
 
-// 1. Routes avec sous-ressources (DOIVENT ÊTRE EN PREMIERES)
-router.get('/owner/me', protect, authorize('restaurant'), getOwnerRestaurant); // Si vous l'avez, elle va ici
+// 1. Routes avec sous-ressources (Laissez celle-ci telle quelle, elle n'est pas le problème)
+// Assurez-vous que getOwnerRestaurant est importé ou supprimez cette ligne si non définie.
+router.get('/owner/me', protect, authorize('restaurant'), getOwnerRestaurant); 
 router.get('/:id/dishes', getRestaurantDishes); 
 
-// 2. Route DYNAMIQUE PAR ID (Doit venir après les sous-ressources)
-router.get('/:id', getRestaurantById);
+// 2. Route DYNAMIQUE PAR ID
+router.get('/:id', getMockRestaurantById); // ✅ UTILISE LE MOCK
 
 // 3. Route GÉNÉRALE
 router.get('/', getRestaurants);
