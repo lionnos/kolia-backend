@@ -1,39 +1,39 @@
-// restaurantRoutes.js - VERSION CORRIGÉE
+// restaurantRoutes.js - Version corrigée
 const express = require('express');
 const router = express.Router();
-
-// Import des controllers
-const {
-  getRestaurants,
-  getRestaurantById,
-  createRestaurant,
-  updateRestaurant,
-  deleteRestaurant,
-  getRestaurantDishes,
-  getRestaurantOrders,
-  updateRestaurantStatus
+const { 
+  getRestaurants, 
+  getRestaurantById, 
+  createRestaurant, 
+  updateRestaurant, 
+  deleteRestaurant,
+  getRestaurantDishes,
+  getRestaurantOrders,
+  updateRestaurantStatus
 } = require('../controllers/restaurantController');
-
 const { protect, authorize } = require('../middleware/authMiddleware');
 const { validate, schemas } = require('../middleware/validationMiddleware');
 
-// --- ROUTES PUBLIQUES ---
-router.get('/', getRestaurants);
+// --- ROUTES PUBLIQUES (Ordre corrigé : Sous-ressources > Dynamique > Générale) ---
 
-// ⚠️ CRITIQUE : getRestaurantById DOIT ÊTRE APRÈS les routes spécifiques
-// mais AVANT les routes avec sous-ressources
+// 1. Routes avec sous-ressources (DOIVENT ÊTRE EN PREMIERES)
+router.get('/owner/me', protect, authorize('restaurant'), getOwnerRestaurant); // Si vous l'avez, elle va ici
+router.get('/:id/dishes', getRestaurantDishes); 
+
+// 2. Route DYNAMIQUE PAR ID (Doit venir après les sous-ressources)
 router.get('/:id', getRestaurantById);
 
-// Routes avec sous-ressources
-router.get('/:id/dishes', getRestaurantDishes);
+// 3. Route GÉNÉRALE
+router.get('/', getRestaurants);
 
 // --- ROUTES PROTÉGÉES ---
-router.use(protect); // Applique protect à toutes les routes suivantes
 
-router.post('/', authorize('restaurant'), validate(schemas.restaurant), createRestaurant);
-router.put('/:id', authorize('restaurant'), updateRestaurant);
-router.delete('/:id', authorize('restaurant', 'admin'), deleteRestaurant);
-router.get('/:id/orders', authorize('restaurant'), getRestaurantOrders);
-router.patch('/:id/status', authorize('restaurant'), updateRestaurantStatus);
+router.post('/', protect, authorize('restaurant'), validate(schemas.restaurant), createRestaurant);
+router.put('/:id', protect, authorize('restaurant'), updateRestaurant);
+router.delete('/:id', protect, authorize('restaurant', 'admin'), deleteRestaurant);
+
+// Sous-ressources Protégées
+router.get('/:id/orders', protect, authorize('restaurant'), getRestaurantOrders);
+router.patch('/:id/status', protect, authorize('restaurant'), updateRestaurantStatus);
 
 module.exports = router;
